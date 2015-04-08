@@ -98,6 +98,19 @@ int bloom_init(struct bloom * bloom, int entries, double error)
 }
 
 
+int bloom_init_fill(struct bloom * bloom, int entries, double error, unsigned char * data, int len)
+{
+  int init_success = bloom_init(bloom, entries, error);
+  if (init_success != 0 || bloom->bytes != len) {
+    return 1;
+  }
+
+  memcpy(bloom->bf, data, len);
+
+  return 0;
+}
+
+
 int bloom_check(struct bloom * bloom, const void * buffer, int len)
 {
   return bloom_check_add(bloom, buffer, len, 0);
@@ -128,4 +141,51 @@ void bloom_free(struct bloom * bloom)
     free(bloom->bf);
   }
   bloom->ready = 0;
+}
+
+
+double bloom_intersect_est(struct bloom * b1, struct bloom * b2) {
+  if (b1->bits != b2->bits || b1->hashes != b2->hashes) {
+    return -1.0;  // must be of same size and same # of hashes
+  }
+
+  double m = (float)b1->bits;
+  double k = (float)b1->hashes;
+  int bytes = b1->bytes;
+  unsigned char *abunion = bitwise_or(b1->bf, b2->bf, bytes);
+
+  double na = -1.0*m*log(1.0-(float)count_bits(b1->bf, bytes)/m)/k;
+  double nb = -1.0*m*log(1.0-(float)count_bits(b2->bf, bytes)/m)/k;
+  double nab = -1.0*m*log(1.0-(float)count_bits(abunion, bytes)/m)/k;
+  return na + nb - nab;
+}
+
+
+int count_bits(unsigned char *cs, int bytes) {
+  int i, bits;
+  unsigned char c;
+
+  (void)printf("bytes: %d\n", bytes);
+
+  bits=0;
+  for (i = 0; i < bytes; i++) {
+    c = cs[i];
+    // (void)printf("c: %d\n", c);
+    for (; c; c >>= 1)
+    {
+      bits += c & 1;
+    }
+  }
+
+  return bits;
+}
+
+
+unsigned char *bitwise_or(unsigned char * c1, unsigned char * c2, int len) {
+  unsigned char *res = (unsigned char*)malloc(len);
+  int i;
+  for (i = 0; i < len; i++) {
+    res[i] = c1[i] | c2[i];
+  }
+  return res;
 }

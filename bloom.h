@@ -62,6 +62,7 @@ struct bloom
  */
 int bloom_init(struct bloom * bloom, int entries, double error);
 
+int bloom_init_fill(struct bloom * bloom, int entries, double error, unsigned char * data, int len);
 
 /** ***************************************************************************
  * Check if the given element is in the bloom filter. Remember this may
@@ -125,5 +126,15 @@ void bloom_print(struct bloom * bloom);
  *
  */
 void bloom_free(struct bloom * bloom);
+
+
+double bloom_intersect_est(struct bloom * b1, struct bloom * b2);
+
+
+int count_bits(unsigned char *cs, int bytes);
+
+
+unsigned char *bitwise_or(unsigned char * c1, unsigned char * c2, int len);
+
 
 #endif

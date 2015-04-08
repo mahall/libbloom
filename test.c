@@ -54,6 +54,45 @@ static void basic()
   bloom_free(&bloom);
 }
 
+static void intersection()
+{
+  (void)printf("----- intersection -----\n");
+
+  struct bloom b1, b2;
+  int size = 25000;
+  int inserts_1 = 25000;
+  int inserts_2 = 500;
+  int intersection_count = 0;
+
+  bloom_init(&b1, size, 0.01);
+  bloom_init(&b2, size, 0.01);
+
+  char block[32];
+  int collisions = 0;
+  int fd = open("/dev/urandom", O_RDONLY);
+  int n;
+
+  for (n = 0; n < inserts_1; n++) {
+    assert(read(fd, block, 32) == 32);
+    if (bloom_add(&b1, (void *)block, 32)) { collisions++; }
+    if (n < intersection_count) {bloom_add(&b2, (void *)block, 32);}
+  }
+  (void)printf("collisions1: %d\n", collisions);
+
+  collisions = 0;
+  for (n = 0; n < inserts_2 - intersection_count; n++) {
+    assert(read(fd, block, 32) == 32);
+    if (bloom_add(&b2, (void *)block, 32)) { collisions++; }
+  }
+  (void)printf("collisions2: %d\n", collisions);
+
+  (void)close(fd);
+
+  double inter_res = bloom_intersect_est(&b1, &b2);
+
+  (void)printf("interres: %f\n", inter_res);
+}
+
 
 /** ***************************************************************************
  * Create a bloom filter with given parameters and add 'count' random elements
@@ -138,6 +177,7 @@ int main(int argc, char **argv)
   }
 
   basic();
+  // intersection();
   add_random(100, 0.001, 300);
 
   int i;
